@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS `bmp180` (
 
 CREATE TABLE IF NOT EXISTS `dht22` (
   `dht_id` int(255) NOT NULL AUTO_INCREMENT,
-  `reading_id` int(20) NOT NULL,
   `temperature_c` double NOT NULL,
   `temperature_f` double NOT NULL,
   `humidity` varchar(20) NOT NULL,

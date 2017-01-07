@@ -17,6 +17,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # Set the time of the script being run
 time_of_reading = datetime.datetime.now()
+print(time_of_reading)
 currentDate=time_of_reading.date()
 
 # Calculate 4-hour block for daily averages
