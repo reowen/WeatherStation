@@ -107,7 +107,7 @@ def saveToDHT(temp_dht,temp_dht_f,humidity_dht):
 
     with con:
         cur=con.cursor()
-        cur.execute("INSERT INTO dht22 (reading_id,temperature_c,temperature_f,humidity,dateMeasured,hourMeasured,timeBlock) VALUES ((SELECT reading_id from bmp180 WHERE hourMeasured = %s),%s,%s,%s,%s,%s)",(time_of_reading,temp_dht,temp_dht_f,humidity_dht,currentDate,time_of_reading,block))
+        cur.execute("INSERT INTO dht22 (reading_id,temperature_c,temperature_f,humidity,dateMeasured,hourMeasured,timeBlock) VALUES ((SELECT reading_id from bmp180 WHERE hourMeasured = %s),%s,%s,%s,%s,%s,%s)",(time_of_reading,temp_dht,temp_dht_f,humidity_dht,currentDate,time_of_reading,block))
     print "Saved to DHT 22 Table"
     return "true"
 
