@@ -3,17 +3,26 @@ import sys
 import time
 import datetime
 import json
-import subprocess 
-import re 
-import os 
-import time 
+import subprocess
+import re
+import os
+import time
 
 import Admin
 import Adafruit_BMP.BMP085 as BMP085
 import Adafruit_DHT
 import gspread
-import MySQLdb as mdb 
+import MySQLdb as mdb
 from oauth2client.service_account import ServiceAccountCredentials
+
+# Set the time of the script being run
+time_of_reading = datetime.datetime.now()
+currentDate=time_of_reading.date()
+
+# Calculate 4-hour block for daily averages
+midnight=datetime.datetime.combine(time_of_reading.date(),datetime.time())
+minutes=((time_of_reading-midnight).seconds)/60 #minutes after midnight, use datead$
+block = int(((minutes/60) / 4)) # change the 4 to the desired block length
 
 # Set the DHT Sensor Type and GPIO Pin #
 DHT_TYPE = Adafruit_DHT.DHT22
@@ -21,12 +30,6 @@ DHT_PIN  = 23
 
 # BMP 180 -- Create sensor instance with default I2C bus
 bmp = BMP085.BMP085()
-
-# Set the time of the script being run
-time_of_reading = datetime.datetime.now()
-
-# Set the variable list
-readings = []
 
 # Take the DHT 22 Humidity Readings ####################
 # Try 3 times to get a reading
@@ -40,7 +43,7 @@ while i < 4:
     else:
         i = 4
 
-# If it fails after 3 tries, just move on  
+# If it fails after 3 tries, just move on
 if humidity_dht is None or temp_dht is None:
     print "Failed to get DHT readings"
     temp_dht_f = None
@@ -71,10 +74,10 @@ temp_bmp_f = round(temp_bmp_f, 1)
 pressure = round(pressure, 1)
 altitude = round(altitude, 1)
 
-
+"""
 # Define the procedure for opening the google sheet ##########################
 def login_open_sheet(creds, spreadsheet):
-        """Connect to Google Docs spreadsheet and return the first worksheet."""
+        #Connect to Google Docs spreadsheet and return the first worksheet.
         try:
                 scope = ['https://spreadsheets.google.com/feeds']
                 credentials = ServiceAccountCredentials.from_json_keyfile_name(creds, scope)
@@ -84,20 +87,16 @@ def login_open_sheet(creds, spreadsheet):
         except:
                 print 'Unable to login and get spreadsheet.  Check email, password, spreadsheet name.'
                 sys.exit(1)
-
+"""
 
 # Define the procedures for writing to the database #########################
 def saveToBMP(temp_bmp,temp_bmp_f,pressure,altitude):
 
     con=mdb.connect(Admin.MySQLCredentials.host, Admin.MySQLCredentials.user, Admin.MySQLCredentials.password, Admin.MySQLCredentials.database)
-    currentDate=time_of_reading.date()
-    now=time_of_reading
-    midnight=datetime.datetime.combine(now.date(),datetime.time())
-    minutes=((now-midnight).seconds)/60 #minutes after midnight, use datead$
-  
+
     with con:
         cur=con.cursor()
-        cur.execute("INSERT INTO bmp180 (temperature_c,temperature_f,barometric_pressure,altitude,dateMeasured,hourMeasured) VALUES (%s,%s,%s,%s,%s,%s)",(temp_bmp,temp_bmp_f,pressure,altitude,currentDate,minutes))
+        cur.execute("INSERT INTO bmp180 (temperature_c,temperature_f,barometric_pressure,altitude,dateMeasured,hourMeasured,timeBlock) VALUES (%s,%s,%s,%s,%s,%s,%s)",(temp_bmp,temp_bmp_f,pressure,altitude,currentDate,time_of_reading,block))
 
     print "Saved to BMP 180 Table"
     return "true"
@@ -105,17 +104,10 @@ def saveToBMP(temp_bmp,temp_bmp_f,pressure,altitude):
 def saveToDHT(temp_dht,temp_dht_f,humidity_dht):
 
     con=mdb.connect(Admin.MySQLCredentials.host, Admin.MySQLCredentials.user, Admin.MySQLCredentials.password, Admin.MySQLCredentials.database)
-    currentDate=time_of_reading.date()
 
-    now=time_of_reading
-    midnight=datetime.datetime.combine(now.date(),datetime.time())
-    minutes=((now-midnight).seconds)/60 #minutes after midnight, use datead$
-
-    
     with con:
         cur=con.cursor()
-        cur.execute("INSERT INTO dht22 (reading_id,temperature_c,temperature_f,humidity,dateMeasured,hourMeasured) VALUES ((SELECT reading_id from bmp180 WHERE dateMeasured = %s AND hourMeasured = %s),%s,%s,%s,%s,%s)",(currentDate,minutes,temp_dht,temp_dht_f,humidity_dht,currentDate,minutes))
-
+        cur.execute("INSERT INTO dht22 (reading_id,temperature_c,temperature_f,humidity,dateMeasured,hourMeasured,timeBlock) VALUES ((SELECT reading_id from bmp180 WHERE hourMeasured = %s),%s,%s,%s,%s,%s)",(time_of_reading,temp_dht,temp_dht_f,humidity_dht,currentDate,time_of_reading,block))
     print "Saved to DHT 22 Table"
     return "true"
 
@@ -141,21 +133,20 @@ def createTable():
             while(line!=""):
                 query+=line
                 line=queryFile.readline()
-            
+
             cur=con.cursor()
             cur.execute(query)
-            
+
     except IOError:
         pass #table has already been created
 
 
-        
-# Create the table and write the data to the database #####################
 
-# Uncomment below to create the table
-#createTable()    
+# Create the table and write the data to the database #####################
+#createTable()
 status=writeData() #get the readings
 
+"""
 # Log to the Google Sheet ####################################################
 print 'Logging sensor measurements to {0}.'.format(Admin.GoogleSheetCredentials.name)
 print 'Press Ctrl-C to quit.'
@@ -189,3 +180,4 @@ while run:
 
         print 'Wrote a row to {0}'.format(Admin.GoogleSheetCredentials.name)
         run = False
+"""
